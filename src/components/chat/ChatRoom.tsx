@@ -12,6 +12,7 @@ import { ChatErrorBoundary, ErrorAlert } from "@/components/ui/ErrorBoundary";
 import { useMessages, useApiError } from "@/lib/hooks";
 import type { ChatMessage, Course, SupportedLanguage, User } from "@/types";
 import type { ChatMessageInput } from "@/lib/validation/schemas";
+import { moderateContent } from "@/lib/validation/moderation";
 
 // ─── Mock Data ───────────────────────────────────────────────
 
