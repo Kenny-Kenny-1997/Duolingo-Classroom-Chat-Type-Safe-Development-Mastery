@@ -149,30 +149,41 @@ export function ChatRoom(): React.ReactElement {
   }, [messages]);
 
   const handleSend = useCallback(
-    (data: ChatMessageInput): void => {
-      try {
-        const newMessage: ChatMessage = {
-          id: `msg-${Date.now()}`,
-          authorId: DEMO_USER.id,
-          author: {
-            id: DEMO_USER.id,
-            displayName: DEMO_USER.displayName,
-            role: DEMO_USER.role,
-          },
-          timestamp: new Date(),
-          status: "sent",
-          type: "text",
-          language: data.language as SupportedLanguage,
-          courseId: data.courseId,
-          content: data.content,
-        };
-        addMessage(newMessage);
-      } catch (err) {
-        handleError(err);
+  (data: ChatMessageInput): void => {
+    try {
+      const moderationResult = moderateContent(data.content);
+      
+      if (moderationResult.action === "block" || moderationResult.action === "report") {
+        handleError(new Error(`Message blocked: ${moderationResult.reason ?? "Content not allowed"}`));
+        return;
       }
-    },
-    [addMessage, handleError],
-  );
+
+      if (moderationResult.action === "warn" || moderationResult.action === "filter") {
+        handleError(new Error(`Warning: ${moderationResult.reason ?? "Content may not be appropriate"}`));
+      }
+
+      const newMessage: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        authorId: DEMO_USER.id,
+        author: {
+          id: DEMO_USER.id,
+          displayName: DEMO_USER.displayName,
+          role: DEMO_USER.role,
+        },
+        timestamp: new Date(),
+        status: moderationResult.action === "warn" ? "flagged" : "sent",
+        type: "text",
+        language: data.language as SupportedLanguage,
+        courseId: data.courseId,
+        content: moderationResult.filteredContent ?? data.content,
+      };
+      addMessage(newMessage);
+    } catch (err) {
+      handleError(err);
+    }
+  },
+  [addMessage, handleError]
+);
 
   if (!mounted) return <div />;
 
